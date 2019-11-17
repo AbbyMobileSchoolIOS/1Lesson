@@ -33,17 +33,25 @@ extension NetworkHelperProtocol {
         let cancellation = RequestCancelContainer()
         var count = 0
         
-        while repeatTime > count && !cancellation.isCanceled {
-            cancellation.requestCancel = self.load(resource: resource, completion: { c in
-                switch c {
-                case .failure:
-                    //if is last cycle
-                    if(count + 1 == repeatTime) { completion(c) }
-                case .success:
-                    completion(c)
-                }
-            })
-            count = count + 1
+        Timer.scheduledTimer(withTimeInterval: delayTime, repeats: true ) { timer in
+            if (cancellation.isCanceled) { timer.invalidate() }
+            
+            while repeatTime > count {
+                cancellation.requestCancel = self.load(resource: resource, completion: { c in
+                    switch c {
+                    case .failure:
+                        //if is last cycle
+                        if(count + 1 == repeatTime) {
+                            timer.invalidate()
+                            completion(c)
+                        }
+                    case .success:
+                        timer.invalidate()
+                        completion(c)
+                    }
+                })
+                count = count + 1
+            }
         }
         
         return cancellation
