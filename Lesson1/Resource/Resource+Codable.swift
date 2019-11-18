@@ -5,6 +5,12 @@ import Foundation
 
 extension Resource where ResourceType: Decodable {
 	public init(url: URL, method: HttpMethod<Data> = .get, headers: [String : String]?) {
-		#error("Реализовать инициализатор для Decodable(парсинг ответа от сервера)")
-	}
+        self.url = url
+        self.method = method
+        self.headers = headers
+        self.parse = {(d: Data) -> ResourceType in
+                let decoder = JSONDecoder()
+                return try decoder.decode(ResourceType.self, from: d) }
+    }
+    
 }
