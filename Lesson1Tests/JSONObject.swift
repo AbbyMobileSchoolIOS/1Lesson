@@ -7,4 +7,9 @@ import Foundation
 struct JSONObject: Codable {
 	let name: String
 	let id: Int
+    
+    enum CodingKeys : String, CodingKey{
+        case name = "Name"
+        case id
+    }
 }
