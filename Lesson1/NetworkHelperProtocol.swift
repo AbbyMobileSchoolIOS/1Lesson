@@ -30,6 +30,7 @@ public protocol NetworkHelperProtocol: class {
 extension NetworkHelperProtocol {
 	// Реализация метода загрузки с повторениями(*)
 	public func load<A>(resource: Resource<A>, repeatTime: Int, delayTime: TimeInterval, completion: @escaping (OperationCompletion<A>) -> ()) -> Cancellation? {
-		#error("Реализовать метод")
+		//#error("Реализовать метод")
+        return nil
 	}
 }
