@@ -26,32 +26,29 @@ public protocol NetworkHelperProtocol: class {
     func load<A>(resource: Resource<A>, repeatTime: Int, delayTime: TimeInterval, completion: @escaping (OperationCompletion<A>) -> ()) -> Cancellation?
 }
 
-enum OutdatedRequest: Error {
-    case runtimeError(String)
-}
-
 // MARK: - Реализация методов по умолчанию
 extension NetworkHelperProtocol {
-    // Реализация метода загрузки с повторениями(*)
-    public func load<A>(resource: Resource<A>, repeatTime: Int, delayTime: TimeInterval, completion: @escaping (OperationCompletion<A>) -> ()) -> Cancellation? {
+    public func load<A>(resource: Resource<A>, repeatTime: Int, delayTime: TimeInterval,
+                        completion: @escaping (OperationCompletion<A>) -> ()) -> Cancellation? {
+        
+        let CancellationContainer = RequestCancelContainer()
         var attemptsLeft = repeatTime
-        Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { timer in
-            attemptsLeft -= 1
-                switch resource.method {
-                case .post(let Data):
-                    do {
-                        let result = try resource.parse(Data)
-                        completion(.success(result))
+        Timer.scheduledTimer(withTimeInterval: delayTime, repeats: true) { timer in
+            attemptsLeft -= 1 // Повторяем пока не кончатся попытки
+            CancellationContainer.requestCancel = self.load(resource: resource, completion: { result in
+                switch result {
+                case .success:
+                    timer.invalidate()
+                    completion(result)
+                case .failure:
+                    if attemptsLeft == 0 {
+                        timer.invalidate()
+                        completion(result) // Можно ли заменить комплишн методом в RequestCancelContainer принимающим на вход result?
+                        // Было бы лучше убраться из метода @escaping таким образом выключив таймер (не возвращать Cancelation)?
                     }
-                    catch {}
-                case .get:
-                    break
-            }
-            if attemptsLeft == 0 {
-                timer.invalidate()
-            }
+                }
+            })
         }
-        completion(.failure(OutdatedRequest.runtimeError("Can not approach Data.")))
-        return nil
+        return CancellationContainer
     }
 }
