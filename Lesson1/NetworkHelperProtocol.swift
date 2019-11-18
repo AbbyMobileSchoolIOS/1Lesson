@@ -28,29 +28,38 @@ public protocol NetworkHelperProtocol: class {
 
 // MARK: - Реализация методов по умолчанию
 extension NetworkHelperProtocol {
-     //Реализация метода загрузки с повторениями(*)
+    //Реализация метода загрузки с повторениями(*)
     public func load<A>(resource: Resource<A>, repeatTime: Int, delayTime: TimeInterval, completion: @escaping (OperationCompletion<A>) -> ()) -> Cancellation? {
         
-        for index in 0..<repeatTime {
-                Timer.scheduledTimer(withTimeInterval: delayTime, repeats: false) { timer in
-                switch resource.method {
-                case .get:
-                    print("get")
-                case .post(let data):
-                    do {
-                        let result = try resource.parse(data)
-                        completion(.success(result))
-                        break
-                    } catch let error {
-                        if index == repeatTime - 1 {
-                            completion(.failure(error))
-                        }
-                        
-                    }
+        let requestCancelContainer = RequestCancelContainer()
+        var repeatTime = repeatTime
+        
+        let tryLoad = { (timer: Timer ) -> () in
+            guard requestCancelContainer.isCanceled != true, repeatTime > 0
+                else {
+                    let error = NSError(domain:"", code: 400, userInfo:[ NSLocalizedDescriptionKey: "isCanceled==true or repeatTime == 0"])
+                    completion(.failure(error))
+                    timer.invalidate()
+                    return
+            }
+            
+            switch resource.method {
+            case .get:
+                print("get")
+            case .post(let data):
+                do {
+                    let result = try resource.parse(data)
+                    requestCancelContainer.cancel()
+                    timer.invalidate()
+                    completion(.success(result))
+                } catch {
+                    repeatTime-=1
                 }
             }
         }
-       
-        return nil
+        
+        Timer.scheduledTimer(withTimeInterval: delayTime, repeats: true, block: tryLoad)
+        
+        return requestCancelContainer
     }
 }
