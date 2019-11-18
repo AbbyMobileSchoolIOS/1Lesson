@@ -14,11 +14,5 @@ struct JSONObject: Codable {
       case name = "Name"
       case id
     }
-    
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        name = try container.decode(String.self, forKey: .name)
-        id = try container.decode(Int.self, forKey: .id)
-    }
 
 }
